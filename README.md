@@ -34,3 +34,7 @@ Current baseline: CircuitPython 10.3.0 on Raspberry Pi Pico RP2040.
 The current `boot.py` intentionally keeps the USB configuration simple. It sets the USB manufacturer/product identification and the filesystem label to `BAVK`.
 
 The working `code.py` baseline should not be changed together with `boot.py` without testing. Earlier storage/USB remount handling caused an `USB busy` error with HID, so the current configuration is kept as the known-good baseline.
+
+## Planned improvements
+
+See `TTD.md` for planned features and ideas
