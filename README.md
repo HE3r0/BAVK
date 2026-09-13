@@ -27,7 +27,7 @@ Current baseline: CircuitPython 10.3.0 on Raspberry Pi Pico RP2040.
 
 - `boot.py` - USB identification and `BAVK` filesystem label
 - `code.py` - working BAVK controller baseline
-- `syc.bat` - add, commit and push changes to `origin/main`
+- `sync.bat` - add, commit and push changes to `origin/main`
 
 ## USB / boot configuration
 
