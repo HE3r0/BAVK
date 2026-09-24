@@ -1,69 +1,126 @@
-# BAVK - Things To Do
+# BAVK — Technical To-Do / Development Notes
 
-This file contains ideas and planned improvements for BAVK that are intentionally not part of the current known-good baseline.
+## Current baseline
 
-## 1. Dynamic volume acceleration
+The stable baseline is a working USB HID controller with:
 
-### Goal
+- Raspberry Pi Pico RP2040
+- CircuitPython 10.3.0
+- Encoder on GP2 / GP3
+- Encoder button on GP4
+- WS2812B 16-LED ring on GP0
+- Volume up/down HID events
+- System mute HID event
+- `Win + Alt + K` microphone mute action
+- LED status indication
+- NeoPixel dependencies stored in the repository
 
-Make volume control more responsive when the encoder is turned quickly, while keeping precise control when it is turned slowly.
+## Completed
 
-The current encoder logic treats one physical detent as one volume step:
+### USB HID
+- [x] Volume up
+- [x] Volume down
+- [x] System mute
+- [x] Keyboard HID `Win + Alt + K`
+- [x] Windows 11 verification
 
-- 1 detent = 4 valid S1/S2 transitions
-- slow rotation -> 1 detent = Volume +/- 1
+### Encoder
+- [x] Quadrature decoding
+- [x] One volume event per complete detent
+- [x] Button debounce
+- [x] Short-press detection
+- [x] Long-press detection
+- [x] 500 ms long-press threshold
 
-Planned behaviour:
+### LED ring
+- [x] WS2812B 16-pixel integration
+- [x] White steady state
+- [x] Red steady microphone-mute state
+- [x] Orange breathing system-mute state
+- [x] Red breathing system+microphone-mute state
+- [x] Green 2-second microphone-unmute confirmation
+- [x] LED priority handling
+- [x] NeoPixel libraries added to repository
 
-- slow rotation -> 1 detent = +/-1 volume step
-- normal rotation -> 1 detent = +/-2 volume steps
-- fast rotation -> 1 detent = +/-4 volume steps
+### Repository
+- [x] Active implementation consolidated in `code.py`
+- [x] Older tests moved to `Archive/`
+- [x] NeoPixel dependencies stored under `lib/`
+- [x] Repository synchronized with GitHub
 
-The speed should be determined from the time between consecutive detents. This should be implemented as an acceleration layer on top of the existing, working quadrature decoder rather than changing the basic encoder state machine.
+## Known limitations
 
-Potential future refinement:
+### Host-state feedback
 
-- use more gradual acceleration instead of fixed speed bands
-- potentially increase the multiplier further for very fast rotation
-- define sensible maximum acceleration to avoid excessive volume jumps
+BAVK tracks mute states locally. The LED therefore represents the state BAVK believes it has set, rather than independently reading the actual Windows audio/microphone state.
 
-The current working baseline must remain unchanged until the new behaviour is implemented and tested separately.
+If Windows or another application changes mute state outside BAVK, the LED will not automatically follow that external change.
 
-## 2. Addressable LED ring
+### Microphone mute
 
-Add an addressable LED ring around the encoder as a visual status indicator.
+Short press sends `Win + Alt + K`. This is useful for applications supporting that shortcut. On a system without a supported application active, Windows may report that no supported applications are in use.
 
-### Planned basic states
+The current implementation intentionally keeps this behavior unchanged.
 
-Normal operation:
+### Encoder/button interference
 
-- LED ring -> white
-- steady light
+Testing showed electrical/mechanical coupling in the encoder module can affect the button signal during rotation.
 
-Microphone muted:
+Current button debounce is 20 ms.
 
-- LED ring -> red
-- steady light
+A possible future mitigation is a short software lockout after encoder movement. This is not part of the stable baseline.
 
-System audio muted:
+### USB maintenance mode
 
-- LED ring -> dedicated mute indication
-- possible idea: a pulsing colour/effect rather than a steady colour
+A boot-time maintenance mode was investigated, intended to enable the CIRCUITPY drive only when the encoder button is held during boot/reset.
 
-The exact colour and pulse pattern for system mute are still to be decided.
+The tested implementation did not behave reliably on the current third-party RP2040 board.
 
-### Important design decision
+This remains a future investigation item. The stable `boot.py` should not be changed without a reproducible test case.
 
-Do NOT initially use the LED ring as a volume-level indicator.
+## Planned improvements
 
-A volume-level indicator would require BAVK to know the actual current system volume on the computer. The current design uses standard USB HID consumer-control commands to send Volume Up/Down and does not receive the computer's volume level.
+### Encoder acceleration
 
-The feasibility of receiving system volume state without custom drivers, background software, or another computer-side component is not yet established. Therefore the first LED implementation should focus on local BAVK states that the device already knows itself:
+Proposed behavior:
 
-- normal
-- microphone muted
-- system audio muted
+- Normal rotation: 1x
+- Fast rotation: 2x
+- First detent after stopping: 1x
+- First detent after direction change: 1x
+- Direction change resets acceleration
+- Proposed fast threshold: approximately 150 ms between complete detents
 
-### Future investigation
+This is intentionally not implemented in the stable baseline.
 
-If desired, investigate whether standard USB HID provides a practical, driverless way for BAVK to receive the host's current audio volume/mute state. Do not make this a dependency for the first LED-ring implementation.
+### Host-state synchronization
+
+Investigate whether BAVK can obtain reliable Windows audio and microphone mute state without a custom driver or background application.
+
+Goal: make the LED represent actual host state rather than only BAVK's local state.
+
+### Encoder/button signal isolation
+
+Investigate:
+- software lockout after encoder movement
+- hardware debounce/filtering
+- alternative encoder module
+- grounding/wiring improvements
+
+### USB maintenance mode
+
+Revisit boot-time USB mass-storage control after the current hardware/software behavior is better understood.
+
+## Design decisions
+
+### No volume-level LED indicator
+
+The LED ring is used for device-state feedback, not as a volume meter.
+
+### No host application
+
+Core BAVK functionality is intended to remain driverless and based on standard HID behavior.
+
+### Stable baseline first
+
+New features should be implemented incrementally and tested independently. The current `code.py` is the known-good baseline before introducing acceleration, host-state synchronization or USB maintenance-mode changes.
